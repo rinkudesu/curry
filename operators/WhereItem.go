@@ -21,7 +21,7 @@ func (w *WhereItem) GetOrderedArguments() []interface{} {
 	if w.value == nil {
 		return []interface{}{}
 	}
-	return []interface{}{*w.value}
+	return w.value.GetOrderedArguments()
 }
 
 func NewWhereItem(columnName string, operator string, value *Parameter) *WhereItem {

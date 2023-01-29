@@ -13,29 +13,109 @@ type testData struct {
 	expectedArguments []interface{}
 }
 
-var tests = []testData{
-	{name: "simple select", query: Select("*", "users", ""), expectedResult: "select * from users"},
-	{name: "select with join", query: Select("*", "users u", "join favourites f on f.user_id = u.id"), expectedResult: "select * from users u join favourites f on f.user_id = u.id"},
-	{name: "select with simple where (single)", query: Select("*", "users", "").Where(operators.WhereBegin(operators.NewWhereItem("id", "=", operators.NewParameter(1)))), expectedResult: "select * from users where (id = $1)"},
-	{name: "select with empty where", query: Select("*", "users", "").Where(operators.WhereBegin(operators.NewWhereItem("id", "=", operators.NewOptionalParameter[int](1, 1)))), expectedResult: "select * from users"},
-	{name: "select with simple where (and or)", query: Select("*", "users", "").Where(operators.WhereBegin(operators.NewWhereItem("id", "=", operators.NewParameter(1))).And(operators.NewWhereItem("name", "=", operators.NewParameter("test"))).Or(operators.NewWhereItem("test", "!=", operators.NewParameter("000")))), expectedResult: "select * from users where (id = $1 AND name = $2 OR test != $3)"},
-	{name: "select with where including empty", query: Select("*", "users", "").Where(operators.WhereBegin(operators.NewWhereItem("id", "=", operators.NewOptionalParameter[int](1, 1))).And(operators.NewWhereItem("test", "=", operators.NewParameter("a"))).Or(operators.NewWhereItem("aaa", "=", operators.NewOptionalParameter(1, 1)))), expectedResult: "select * from users where (test = $1)"},
-	{name: "select with nested where", query: Select("*", "users", "").Where(operators.WhereBegin(operators.NewWhereItem("id", "=", operators.NewParameter(1))).And(operators.WhereBegin(operators.NewWhereItem("test", "=", operators.NewParameter(1))).Or(operators.NewWhereItem("test", "=", operators.NewParameter(2))))), expectedResult: "select * from users where (id = $1 AND (test = $2 OR test = $3))"},
-	{name: "select with empty nested where", query: Select("*", "users", "").Where(operators.WhereBegin(operators.NewWhereItem("id", "=", operators.NewParameter(1))).And(operators.WhereBegin(operators.NewWhereItem("test", "=", operators.NewOptionalParameter(1, 1))))), expectedResult: "select * from users where (id = $1)"},
+var tests = []testData{}
+
+func TestQuery_ToExecutable_SimpleSelect(t *testing.T) {
+	t.Parallel()
+	query := Select("*", "users", "")
+
+	result, parameters, err := query.ToExecutable()
+
+	expectedResult := "select * from users"
+	assert.Nil(t, err)
+	assert.Equal(t, expectedResult, result)
+	assert.Empty(t, parameters)
 }
 
-// I'm gonna break everything you know about unit tests here and just make a single test method comparing a bunch of function calls to raw sql queries, as it's much easier to parse mentally
-func TestQuery_ToExecutable_QueryCompare(t *testing.T) {
-	for i := range tests {
-		index := i
-		t.Run(tests[index].name, func(t *testing.T) {
-			t.Parallel()
-			result, _, err := tests[index].query.ToExecutable()
-			assert.Nil(t, err)
-			if tests[index].expectedArguments != nil {
-				//todo
-			}
-			assert.Equal(t, tests[index].expectedResult, result)
-		})
-	}
+func TestQuery_ToExecutable_SelectWithJoin(t *testing.T) {
+	t.Parallel()
+	query := Select("*", "users u", "join favourites f on f.user_id = u.id")
+
+	result, parameters, err := query.ToExecutable()
+
+	expectedResult := "select * from users u join favourites f on f.user_id = u.id"
+	assert.Nil(t, err)
+	assert.Equal(t, expectedResult, result)
+	assert.Empty(t, parameters)
+}
+
+func TestQuery_ToExecutable_SelectWithSimpleSingleWhere(t *testing.T) {
+	t.Parallel()
+	query := Select("*", "users", "").Where(operators.WhereBegin(operators.NewWhereItem("id", "=", operators.NewParameter(1))))
+
+	result, parameters, err := query.ToExecutable()
+
+	expectedResult := "select * from users where (id = $1)"
+	assert.Nil(t, err)
+	assert.Equal(t, expectedResult, result)
+	assert.Equal(t, 1, len(parameters))
+	assert.Equal(t, 1, parameters[0])
+}
+
+func TestQuery_ToExecutable_SelectWithEmptyWhere(t *testing.T) {
+	t.Parallel()
+	query := Select("*", "users", "").Where(operators.WhereBegin(operators.NewWhereItem("id", "=", operators.NewOptionalParameter[int](1, 1))))
+
+	result, parameters, err := query.ToExecutable()
+
+	expectedResult := "select * from users"
+	assert.Nil(t, err)
+	assert.Equal(t, expectedResult, result)
+	assert.Empty(t, parameters)
+}
+
+func TestQuery_ToExecutable_SelectWithWhereAndOr(t *testing.T) {
+	t.Parallel()
+	query := Select("*", "users", "").Where(operators.WhereBegin(operators.NewWhereItem("id", "=", operators.NewParameter(1))).And(operators.NewWhereItem("name", "=", operators.NewParameter("test"))).Or(operators.NewWhereItem("test", "!=", operators.NewParameter("000"))))
+
+	result, parameters, err := query.ToExecutable()
+
+	expectedResult := "select * from users where (id = $1 AND name = $2 OR test != $3)"
+	assert.Nil(t, err)
+	assert.Equal(t, expectedResult, result)
+	assert.Equal(t, 3, len(parameters))
+	assert.Equal(t, 1, parameters[0])
+	assert.Equal(t, "test", parameters[1])
+	assert.Equal(t, "000", parameters[2])
+}
+
+func TestQuery_ToExecutable_SelectWithWhereIncludingEmpty(t *testing.T) {
+	t.Parallel()
+	query := Select("*", "users", "").Where(operators.WhereBegin(operators.NewWhereItem("id", "=", operators.NewOptionalParameter[int](1, 1))).And(operators.NewWhereItem("test", "=", operators.NewParameter("a"))).Or(operators.NewWhereItem("aaa", "=", operators.NewOptionalParameter(1, 1))))
+
+	result, parameters, err := query.ToExecutable()
+
+	expectedResult := "select * from users where (test = $1)"
+	assert.Nil(t, err)
+	assert.Equal(t, expectedResult, result)
+	assert.Equal(t, 1, len(parameters))
+	assert.Equal(t, "a", parameters[0])
+}
+
+func TestQuery_ToExecutable_SelectWithNestedWhere(t *testing.T) {
+	t.Parallel()
+	query := Select("*", "users", "").Where(operators.WhereBegin(operators.NewWhereItem("id", "=", operators.NewParameter(1))).And(operators.WhereBegin(operators.NewWhereItem("test", "=", operators.NewParameter(15))).Or(operators.NewWhereItem("test", "=", operators.NewParameter(2)))))
+
+	result, parameters, err := query.ToExecutable()
+
+	expectedResult := "select * from users where (id = $1 AND (test = $2 OR test = $3))"
+	assert.Nil(t, err)
+	assert.Equal(t, expectedResult, result)
+	assert.Equal(t, 3, len(parameters))
+	assert.Equal(t, 1, parameters[0])
+	assert.Equal(t, 15, parameters[1])
+	assert.Equal(t, 2, parameters[2])
+}
+
+func TestQuery_ToExecutable_SelectWithEmptyNestedWhere(t *testing.T) {
+	t.Parallel()
+	query := Select("*", "users", "").Where(operators.WhereBegin(operators.NewWhereItem("id", "=", operators.NewParameter(1))).And(operators.WhereBegin(operators.NewWhereItem("test", "=", operators.NewOptionalParameter(1, 1)))))
+
+	result, parameters, err := query.ToExecutable()
+
+	expectedResult := "select * from users where (id = $1)"
+	assert.Nil(t, err)
+	assert.Equal(t, expectedResult, result)
+	assert.Equal(t, 1, len(parameters))
+	assert.Equal(t, 1, parameters[0])
 }
