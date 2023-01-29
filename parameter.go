@@ -1,4 +1,4 @@
-package operators
+package curry
 
 type Parameter struct {
 	value interface{}

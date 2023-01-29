@@ -1,4 +1,4 @@
-package operators
+package curry
 
 type SqlPrinter interface {
 	Print() string

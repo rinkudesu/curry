@@ -2,7 +2,6 @@ package curry
 
 import (
 	"bytes"
-	"curry/operators"
 	"errors"
 	"fmt"
 	"strings"
@@ -14,7 +13,7 @@ var (
 
 type Query struct {
 	queryBase string
-	where     *operators.Where
+	where     *Where
 	tail      string
 }
 
@@ -27,7 +26,7 @@ func Select(what string, from string, extra string) *Query {
 	return &Query{queryBase: strings.TrimSpace(fmt.Sprintf("select %s from %s %s", what, from, extra))}
 }
 
-func (q *Query) Where(where *operators.Where) *Query {
+func (q *Query) Where(where *Where) *Query {
 	q.where = where
 	return q
 }

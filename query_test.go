@@ -1,7 +1,6 @@
 package curry
 
 import (
-	"curry/operators"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -41,7 +40,7 @@ func TestQuery_ToExecutable_SelectWithJoin(t *testing.T) {
 
 func TestQuery_ToExecutable_SelectWithSimpleSingleWhere(t *testing.T) {
 	t.Parallel()
-	query := Select("*", "users", "").Where(operators.WhereBegin(operators.NewWhereItem("id", "=", operators.NewParameter(1))))
+	query := Select("*", "users", "").Where(WhereBegin(NewWhereItem("id", "=", NewParameter(1))))
 
 	result, parameters, err := query.ToExecutable()
 
@@ -54,7 +53,7 @@ func TestQuery_ToExecutable_SelectWithSimpleSingleWhere(t *testing.T) {
 
 func TestQuery_ToExecutable_SelectWithEmptyWhere(t *testing.T) {
 	t.Parallel()
-	query := Select("*", "users", "").Where(operators.WhereBegin(operators.NewWhereItem("id", "=", operators.NewOptionalParameter[int](1, 1))))
+	query := Select("*", "users", "").Where(WhereBegin(NewWhereItem("id", "=", NewOptionalParameter[int](1, 1))))
 
 	result, parameters, err := query.ToExecutable()
 
@@ -66,7 +65,7 @@ func TestQuery_ToExecutable_SelectWithEmptyWhere(t *testing.T) {
 
 func TestQuery_ToExecutable_SelectWithWhereAndOr(t *testing.T) {
 	t.Parallel()
-	query := Select("*", "users", "").Where(operators.WhereBegin(operators.NewWhereItem("id", "=", operators.NewParameter(1))).And(operators.NewWhereItem("name", "=", operators.NewParameter("test"))).Or(operators.NewWhereItem("test", "!=", operators.NewParameter("000"))))
+	query := Select("*", "users", "").Where(WhereBegin(NewWhereItem("id", "=", NewParameter(1))).And(NewWhereItem("name", "=", NewParameter("test"))).Or(NewWhereItem("test", "!=", NewParameter("000"))))
 
 	result, parameters, err := query.ToExecutable()
 
@@ -81,7 +80,7 @@ func TestQuery_ToExecutable_SelectWithWhereAndOr(t *testing.T) {
 
 func TestQuery_ToExecutable_SelectWithWhereIncludingEmpty(t *testing.T) {
 	t.Parallel()
-	query := Select("*", "users", "").Where(operators.WhereBegin(operators.NewWhereItem("id", "=", operators.NewOptionalParameter[int](1, 1))).And(operators.NewWhereItem("test", "=", operators.NewParameter("a"))).Or(operators.NewWhereItem("aaa", "=", operators.NewOptionalParameter(1, 1))))
+	query := Select("*", "users", "").Where(WhereBegin(NewWhereItem("id", "=", NewOptionalParameter[int](1, 1))).And(NewWhereItem("test", "=", NewParameter("a"))).Or(NewWhereItem("aaa", "=", NewOptionalParameter(1, 1))))
 
 	result, parameters, err := query.ToExecutable()
 
@@ -94,7 +93,7 @@ func TestQuery_ToExecutable_SelectWithWhereIncludingEmpty(t *testing.T) {
 
 func TestQuery_ToExecutable_SelectWithNestedWhere(t *testing.T) {
 	t.Parallel()
-	query := Select("*", "users", "").Where(operators.WhereBegin(operators.NewWhereItem("id", "=", operators.NewParameter(1))).And(operators.WhereBegin(operators.NewWhereItem("test", "=", operators.NewParameter(15))).Or(operators.NewWhereItem("test", "=", operators.NewParameter(2)))))
+	query := Select("*", "users", "").Where(WhereBegin(NewWhereItem("id", "=", NewParameter(1))).And(WhereBegin(NewWhereItem("test", "=", NewParameter(15))).Or(NewWhereItem("test", "=", NewParameter(2)))))
 
 	result, parameters, err := query.ToExecutable()
 
@@ -109,7 +108,7 @@ func TestQuery_ToExecutable_SelectWithNestedWhere(t *testing.T) {
 
 func TestQuery_ToExecutable_SelectWithEmptyNestedWhere(t *testing.T) {
 	t.Parallel()
-	query := Select("*", "users", "").Where(operators.WhereBegin(operators.NewWhereItem("id", "=", operators.NewParameter(1))).And(operators.WhereBegin(operators.NewWhereItem("test", "=", operators.NewOptionalParameter(1, 1)))))
+	query := Select("*", "users", "").Where(WhereBegin(NewWhereItem("id", "=", NewParameter(1))).And(WhereBegin(NewWhereItem("test", "=", NewOptionalParameter(1, 1)))))
 
 	result, parameters, err := query.ToExecutable()
 
