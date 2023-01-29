@@ -14,6 +14,8 @@ var (
 type Query struct {
 	queryBase string
 	where     *Where
+	limit     *limit
+	offset    *offset
 	tail      string
 }
 
@@ -28,6 +30,20 @@ func Select(what string, from string, extra string) *Query {
 
 func (q *Query) Where(where *Where) *Query {
 	q.where = where
+	return q
+}
+
+func (q *Query) Limit(value int) *Query {
+	if value != 0 {
+		q.limit = &limit{value: value}
+	}
+	return q
+}
+
+func (q *Query) Offset(value int) *Query {
+	if value != 0 {
+		q.offset = &offset{value: value}
+	}
 	return q
 }
 
@@ -47,6 +63,18 @@ func (q *Query) ToExecutable() (string, []interface{}, error) {
 		queryBuilder.WriteString(" where ")
 		queryBuilder.WriteString(q.where.Print())
 		arguments = append(arguments, q.where.GetOrderedArguments()...)
+	}
+
+	if q.offset != nil {
+		queryBuilder.WriteString(" ")
+		queryBuilder.WriteString(q.offset.Print())
+		arguments = append(arguments, q.offset.GetOrderedArguments()...)
+	}
+
+	if q.limit != nil {
+		queryBuilder.WriteString(" ")
+		queryBuilder.WriteString(q.limit.Print())
+		arguments = append(arguments, q.limit.GetOrderedArguments()...)
 	}
 
 	if q.tail != "" {

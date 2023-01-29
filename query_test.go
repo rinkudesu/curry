@@ -118,3 +118,31 @@ func TestQuery_ToExecutable_SelectWithEmptyNestedWhere(t *testing.T) {
 	assert.Equal(t, 1, len(parameters))
 	assert.Equal(t, 1, parameters[0])
 }
+
+func TestQuery_ToExecutable_SelectWithSimpleSingleWhereLimitOffsetAppend(t *testing.T) {
+	t.Parallel()
+	query := Select("*", "users", "").Where(WhereBegin(NewWhereItem("id", "=", NewParameter(1)))).Limit(2).Offset(3).Append("returning id")
+
+	result, parameters, err := query.ToExecutable()
+
+	expectedResult := "select * from users where (id = $1) offset $2 limit $3 returning id"
+	assert.Nil(t, err)
+	assert.Equal(t, expectedResult, result)
+	assert.Equal(t, 3, len(parameters))
+	assert.Equal(t, 1, parameters[0])
+	assert.Equal(t, 3, parameters[1])
+	assert.Equal(t, 2, parameters[2])
+}
+
+func TestQuery_ToExecutable_LimitOffsetZerosIgnored(t *testing.T) {
+	t.Parallel()
+	query := Select("*", "users", "").Where(WhereBegin(NewWhereItem("id", "=", NewParameter(1)))).Limit(0).Offset(0).Append("returning id")
+
+	result, parameters, err := query.ToExecutable()
+
+	expectedResult := "select * from users where (id = $1) returning id"
+	assert.Nil(t, err)
+	assert.Equal(t, expectedResult, result)
+	assert.Equal(t, 1, len(parameters))
+	assert.Equal(t, 1, parameters[0])
+}
