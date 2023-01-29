@@ -5,10 +5,116 @@ import (
 	"testing"
 )
 
-func TestQuery_ToString(t *testing.T) {
-	// this is mostly a placeholder test to make sure everything is working as intended during repo setup
-	t.Parallel()
-	query := Base("test")
+type testData struct {
+	name              string
+	query             *Query
+	expectedResult    string
+	expectedArguments []interface{}
+}
 
-	assert.Equal(t, "test", query.ToString())
+var tests = []testData{}
+
+func TestQuery_ToExecutable_SimpleSelect(t *testing.T) {
+	t.Parallel()
+	query := Select("*", "users", "")
+
+	result, parameters, err := query.ToExecutable()
+
+	expectedResult := "select * from users"
+	assert.Nil(t, err)
+	assert.Equal(t, expectedResult, result)
+	assert.Empty(t, parameters)
+}
+
+func TestQuery_ToExecutable_SelectWithJoin(t *testing.T) {
+	t.Parallel()
+	query := Select("*", "users u", "join favourites f on f.user_id = u.id")
+
+	result, parameters, err := query.ToExecutable()
+
+	expectedResult := "select * from users u join favourites f on f.user_id = u.id"
+	assert.Nil(t, err)
+	assert.Equal(t, expectedResult, result)
+	assert.Empty(t, parameters)
+}
+
+func TestQuery_ToExecutable_SelectWithSimpleSingleWhere(t *testing.T) {
+	t.Parallel()
+	query := Select("*", "users", "").Where(WhereBegin(NewWhereItem("id", "=", NewParameter(1))))
+
+	result, parameters, err := query.ToExecutable()
+
+	expectedResult := "select * from users where (id = $1)"
+	assert.Nil(t, err)
+	assert.Equal(t, expectedResult, result)
+	assert.Equal(t, 1, len(parameters))
+	assert.Equal(t, 1, parameters[0])
+}
+
+func TestQuery_ToExecutable_SelectWithEmptyWhere(t *testing.T) {
+	t.Parallel()
+	query := Select("*", "users", "").Where(WhereBegin(NewWhereItem("id", "=", NewOptionalParameter[int](1, 1))))
+
+	result, parameters, err := query.ToExecutable()
+
+	expectedResult := "select * from users"
+	assert.Nil(t, err)
+	assert.Equal(t, expectedResult, result)
+	assert.Empty(t, parameters)
+}
+
+func TestQuery_ToExecutable_SelectWithWhereAndOr(t *testing.T) {
+	t.Parallel()
+	query := Select("*", "users", "").Where(WhereBegin(NewWhereItem("id", "=", NewParameter(1))).And(NewWhereItem("name", "=", NewParameter("test"))).Or(NewWhereItem("test", "!=", NewParameter("000"))))
+
+	result, parameters, err := query.ToExecutable()
+
+	expectedResult := "select * from users where (id = $1 AND name = $2 OR test != $3)"
+	assert.Nil(t, err)
+	assert.Equal(t, expectedResult, result)
+	assert.Equal(t, 3, len(parameters))
+	assert.Equal(t, 1, parameters[0])
+	assert.Equal(t, "test", parameters[1])
+	assert.Equal(t, "000", parameters[2])
+}
+
+func TestQuery_ToExecutable_SelectWithWhereIncludingEmpty(t *testing.T) {
+	t.Parallel()
+	query := Select("*", "users", "").Where(WhereBegin(NewWhereItem("id", "=", NewOptionalParameter[int](1, 1))).And(NewWhereItem("test", "=", NewParameter("a"))).Or(NewWhereItem("aaa", "=", NewOptionalParameter(1, 1))))
+
+	result, parameters, err := query.ToExecutable()
+
+	expectedResult := "select * from users where (test = $1)"
+	assert.Nil(t, err)
+	assert.Equal(t, expectedResult, result)
+	assert.Equal(t, 1, len(parameters))
+	assert.Equal(t, "a", parameters[0])
+}
+
+func TestQuery_ToExecutable_SelectWithNestedWhere(t *testing.T) {
+	t.Parallel()
+	query := Select("*", "users", "").Where(WhereBegin(NewWhereItem("id", "=", NewParameter(1))).And(WhereBegin(NewWhereItem("test", "=", NewParameter(15))).Or(NewWhereItem("test", "=", NewParameter(2)))))
+
+	result, parameters, err := query.ToExecutable()
+
+	expectedResult := "select * from users where (id = $1 AND (test = $2 OR test = $3))"
+	assert.Nil(t, err)
+	assert.Equal(t, expectedResult, result)
+	assert.Equal(t, 3, len(parameters))
+	assert.Equal(t, 1, parameters[0])
+	assert.Equal(t, 15, parameters[1])
+	assert.Equal(t, 2, parameters[2])
+}
+
+func TestQuery_ToExecutable_SelectWithEmptyNestedWhere(t *testing.T) {
+	t.Parallel()
+	query := Select("*", "users", "").Where(WhereBegin(NewWhereItem("id", "=", NewParameter(1))).And(WhereBegin(NewWhereItem("test", "=", NewOptionalParameter(1, 1)))))
+
+	result, parameters, err := query.ToExecutable()
+
+	expectedResult := "select * from users where (id = $1)"
+	assert.Nil(t, err)
+	assert.Equal(t, expectedResult, result)
+	assert.Equal(t, 1, len(parameters))
+	assert.Equal(t, 1, parameters[0])
 }
