@@ -1,4 +1,4 @@
-module curry
+module github.com/rinkudesu/curry
 
 go 1.19
 
