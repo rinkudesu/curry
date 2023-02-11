@@ -17,6 +17,8 @@ type Query struct {
 	limit     *limit
 	offset    *offset
 	tail      string
+	orderBy   string
+	orderDesc bool
 }
 
 // Select begins the "select" query formation. The extra argument should contain all other query parts that should not pe parametrised, such as "join" statements - it's optional and can be left empty.
@@ -47,6 +49,21 @@ func (q *Query) Offset(value int) *Query {
 	return q
 }
 
+func (q *Query) OrderBy(column string) *Query {
+	if column != "" {
+		q.orderBy = column
+	}
+	return q
+}
+
+func (q *Query) OrderByDescending(column string) *Query {
+	if column != "" {
+		q.orderBy = column
+		q.orderDesc = true
+	}
+	return q
+}
+
 func (q *Query) Append(tail string) *Query {
 	q.tail += tail
 	return q
@@ -63,6 +80,14 @@ func (q *Query) ToExecutable() (string, []interface{}, error) {
 		queryBuilder.WriteString(" where ")
 		queryBuilder.WriteString(q.where.Print())
 		arguments = append(arguments, q.where.GetOrderedArguments()...)
+	}
+
+	if q.orderBy != "" {
+		queryBuilder.WriteString(" order by ")
+		queryBuilder.WriteString(q.orderBy)
+		if q.orderDesc {
+			queryBuilder.WriteString(" desc")
+		}
 	}
 
 	if q.offset != nil {
